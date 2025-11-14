@@ -11,7 +11,7 @@ This assumes:
 
 ------
 
-# ✔ Step 1 — Ensure You're on the `dev` Branch
+# Ensure You're on the `dev` Branch
 
 ```bash
 git checkout dev
@@ -25,7 +25,7 @@ git checkout -b dev
 
 ------
 
-# ✔ Step 2 — Check What Will Be Committed
+# Check What Will Be Committed
 
 ```bash
 git status
@@ -46,7 +46,7 @@ echo "filename-or-dir" >> .gitignore
 
 ------
 
-# ✔ Step 3 — Add All New/Modified Files
+# Add All New/Modified Files
 
 ```bash
 git add -A
@@ -54,7 +54,7 @@ git add -A
 
 ------
 
-# ✔ Step 4 — Commit With a Versioned Message
+# Step 4 — Commit With a Versioned Message
 
 ```bash
 git commit -m "v0.0.1 - Initial KISS tooling, init script, README, minimal standards structure"
@@ -62,7 +62,7 @@ git commit -m "v0.0.1 - Initial KISS tooling, init script, README, minimal stand
 
 ------
 
-# ✔ Step 5 — Tag the Release
+# Tag the Release
 
 This is optional, but HIGHLY recommended.
 
@@ -72,7 +72,7 @@ git tag -a v0.0.1 -m "Initial development version 0.0.1"
 
 ------
 
-# ✔ Step 6 — Push Both the Branch and Tag to the Remote
+# Push Both the Branch and Tag to the Remote
 
 ```bash
 git push origin dev
@@ -83,7 +83,7 @@ If your remote uses another name instead of **origin**, just adjust accordingly.
 
 ------
 
-# ✔ Step 7 — (Optional) Confirm Everything
+# Confirm Everything - Optional
 
 List local tags:
 
@@ -105,7 +105,7 @@ git log --oneline --decorate --graph -n 10
 
 ------
 
-# If You Want, I Can Produce:
+## Potential Roadmap Items
 
 - A **CHANGELOG.md** with entry for `0.0.1`
 - A **semantic versioning plan**
@@ -113,5 +113,3 @@ git log --oneline --decorate --graph -n 10
 - A **GitHub release text** for the v0.0.1 tag
 - A **pre-commit hook** for version bumping
 - A **script bump-version.sh**
-
-Just tell me what you want next.
