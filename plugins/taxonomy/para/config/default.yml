@@ -1,0 +1,45 @@
+version: "0.1.0"
+taxonomy_id: "para"
+
+apply_mode: "under_locale_roots"
+
+buckets:
+  - id: "projects"
+    path: "projects"
+    subdirs:
+      - "design"
+      - "research"
+      - "implementation"
+      - "outputs"
+      - "archive"
+
+  - id: "areas"
+    path: "areas"
+    subdirs:
+      - "content"
+      - "creation"
+      - "infra"
+      - "sys"
+      - "hw"
+      - "well-being"
+      - "graphics"
+      - "governance"
+
+  - id: "resources"
+    path: "resources"
+    subdirs:
+      - "people"
+      - "tools"
+      - "templates"
+      - "citations"
+      - "brand"
+      - "images"
+      - "datasets"
+
+  - id: "archives"
+    path: "archives"
+    subdirs:
+      - "drafts"
+      - "deprecated"
+      - "snapshots"
+      - "translations"

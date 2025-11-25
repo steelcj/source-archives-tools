@@ -1,0 +1,6 @@
+id: "taxonomy.para"
+version: "0.1.0"
+kind: "taxonomy"
+entry_point: "tools.plugins.taxonomy.para.plugin:apply_taxonomy"
+standard_dir: "standard"
+config_dir: "config"

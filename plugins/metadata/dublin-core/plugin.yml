@@ -1,0 +1,6 @@
+id: "metadata.dublin-core"
+version: "0.1.0"
+kind: "metadata"
+entry_point: "tools.plugins.metadata.dublin-core.plugin"
+standard_dir: "standard"
+config_dir: "config"

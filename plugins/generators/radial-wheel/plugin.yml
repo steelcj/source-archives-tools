@@ -1,0 +1,6 @@
+id: "generators.radial-wheel"
+version: "0.1.0"
+kind: "generators"
+entry_point: "tools.plugins.generators.radial-wheel.plugin"
+standard_dir: "standard"
+config_dir: "config"
