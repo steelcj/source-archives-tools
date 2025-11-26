@@ -1,0 +1,575 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Sovereign Archive Toolkit (sat)
+# sat-fill-default-metadata v0.2
+#
+# - v0.1: read-only inspection of archive-wide defaults
+# - v0.2: adds --apply with per-file confirmation, writes defaults into YAML
+#
+# Fields handled:
+#   Author
+#   DC_Creator
+#   License
+#   DC_License
+#   DC_RightsHolder
+#
+# Rules:
+#   - Defaults are only applied when a field is missing/empty.
+#   - Existing non-empty fields are never overwritten.
+#   - For files without front matter, --apply will create a minimal block.
+
+show_help() {
+  cat <<EOF
+Usage: $(basename "$0") [--archive-root PATH] [--defaults PATH] [--apply]
+
+Inspect and (optionally) apply archive-wide metadata defaults to Markdown files.
+
+Options:
+  --archive-root PATH   Archive root directory (default: parent of this script)
+  --defaults PATH       Path to metadata_defaults.yml
+                        (default: ARCHIVE_ROOT/config/metadata_defaults.yml)
+  --apply               Interactively add missing default metadata per file
+  -h, --help            Show this help
+EOF
+}
+
+ARCHIVE_ROOT=""
+DEFAULTS_FILE=""
+APPLY=false
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --archive-root)
+      ARCHIVE_ROOT="${2:-}"
+      shift 2
+      ;;
+    --defaults)
+      DEFAULTS_FILE="${2:-}"
+      shift 2
+      ;;
+    --apply)
+      APPLY=true
+      shift 1
+      ;;
+    -h|--help)
+      show_help
+      exit 0
+      ;;
+    *)
+      echo "Unknown argument: $1" >&2
+      show_help
+      exit 1
+      ;;
+  esac
+done
+
+# If archive root not given, assume this script lives in <archive-root>/tools/
+if [[ -z "${ARCHIVE_ROOT}" ]]; then
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  ARCHIVE_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+fi
+
+if [[ ! -d "${ARCHIVE_ROOT}" ]]; then
+  echo "Error: archive root does not exist: ${ARCHIVE_ROOT}" >&2
+  exit 1
+fi
+
+# Defaults file
+if [[ -z "${DEFAULTS_FILE}" ]]; then
+  DEFAULTS_FILE="${ARCHIVE_ROOT}/config/metadata_defaults.yml"
+fi
+
+if [[ ! -f "${DEFAULTS_FILE}" ]]; then
+  echo "Error: metadata defaults file not found: ${DEFAULTS_FILE}" >&2
+  exit 1
+fi
+
+if $APPLY; then
+  echo "sat-fill-default-metadata v0.2 (--apply, per-file confirmation)"
+else
+  echo "sat-fill-default-metadata v0.2 (read-only)"
+fi
+echo "Archive root : ${ARCHIVE_ROOT}"
+echo "Defaults file: ${DEFAULTS_FILE}"
+echo
+
+########################################
+# Load defaults from metadata_defaults.yml
+########################################
+
+DEFAULT_AUTHOR=""
+DEFAULT_DC_CREATOR=""
+DEFAULT_LICENSE=""
+DEFAULT_DC_LICENSE=""
+DEFAULT_DC_RIGHTS_HOLDER=""
+
+# Simple YAML extraction for this specific structure.
+# We assume:
+# defaults:
+#   authors:
+#     - "Name"
+#   dc_creators:
+#     - "Name"
+#   license: "..."
+#   dc_license: "..."
+#   dc_rights_holder: "..."
+
+load_defaults() {
+  local file="$1"
+
+  # First author in defaults.authors
+  DEFAULT_AUTHOR="$(
+    awk '
+      /^defaults:/ { in_def=1; next }
+      # leave defaults block when next top-level key appears
+      in_def && /^[^[:space:]]/ { in_def=0 }
+      in_def && /^[[:space:]]+authors:/ { in_auth=1; next }
+      in_auth && /^[[:space:]]*-/ {
+        # strip leading spaces, dash, spaces, and opening quote if present
+        sub(/^[[:space:]]*-[[:space:]]*"/, "", $0)
+        # strip trailing quote if present
+        sub(/"$/, "", $0)
+        # trim any remaining leading/trailing spaces
+        sub(/^[[:space:]]+/, "", $0)
+        sub(/[[:space:]]+$/, "", $0)
+        print $0
+        exit
+      }
+      in_auth && /^[^[:space:]]/ { in_auth=0 }
+    ' "$file"
+  )"
+
+  # First dc_creator in defaults.dc_creators
+  DEFAULT_DC_CREATOR="$(
+    awk '
+      /^defaults:/ { in_def=1; next }
+      in_def && /^[^[:space:]]/ { in_def=0 }
+      in_def && /^[[:space:]]+dc_creators:/ { in_dc=1; next }
+      in_dc && /^[[:space:]]*-/ {
+        sub(/^[[:space:]]*-[[:space:]]*"/, "", $0)
+        sub(/"$/, "", $0)
+        sub(/^[[:space:]]+/, "", $0)
+        sub(/[[:space:]]+$/, "", $0)
+        print $0
+        exit
+      }
+      in_dc && /^[^[:space:]]/ { in_dc=0 }
+    ' "$file"
+  )"
+
+  # Scalar license
+  DEFAULT_LICENSE="$(
+    awk '
+      /^defaults:/ { in_def=1; next }
+      in_def && /^[^[:space:]]/ { in_def=0 }
+      in_def && /^[[:space:]]*license:/ {
+        sub(/^[[:space:]]*license:[ \t]*/, "", $0)
+        gsub(/"/, "", $0)
+        print $0
+        exit
+      }
+    ' "$file"
+  )"
+
+  # Scalar dc_license
+  DEFAULT_DC_LICENSE="$(
+    awk '
+      /^defaults:/ { in_def=1; next }
+      in_def && /^[^[:space:]]/ { in_def=0 }
+      in_def && /^[[:space:]]*dc_license:/ {
+        sub(/^[[:space:]]*dc_license:[ \t]*/, "", $0)
+        gsub(/"/, "", $0)
+        print $0
+        exit
+      }
+    ' "$file"
+  )"
+
+  # Scalar dc_rights_holder
+  DEFAULT_DC_RIGHTS_HOLDER="$(
+    awk '
+      /^defaults:/ { in_def=1; next }
+      in_def && /^[^[:space:]]/ { in_def=0 }
+      in_def && /^[[:space:]]*dc_rights_holder:/ {
+        sub(/^[[:space:]]*dc_rights_holder:[ \t]*/, "", $0)
+        gsub(/"/, "", $0)
+        print $0
+        exit
+      }
+    ' "$file"
+  )"
+}
+
+load_defaults "${DEFAULTS_FILE}"
+
+echo "Loaded default metadata:"
+echo "  Author:           ${DEFAULT_AUTHOR:-<none>}"
+echo "  DC_Creator:       ${DEFAULT_DC_CREATOR:-<none>}"
+echo "  License:          ${DEFAULT_LICENSE:-<none>}"
+echo "  DC_License:       ${DEFAULT_DC_LICENSE:-<none>}"
+echo "  DC_RightsHolder:  ${DEFAULT_DC_RIGHTS_HOLDER:-<none>}"
+echo
+
+########################################
+# Helper: extract a YAML scalar from front matter
+########################################
+
+extract_yaml_field() {
+  local key="$1"
+  local file="$2"
+
+  awk -v k="$key" '
+    BEGIN { in_yaml = 0 }
+    NR == 1 && /^---[ \t]*$/ { in_yaml = 1; next }
+    in_yaml == 1 && /^---[ \t]*$/ { in_yaml = 2; next }
+    in_yaml == 1 && $0 ~ "^" k ":" {
+      sub("^" k ":[ \t]*", "", $0)
+      gsub(/"/, "", $0)
+      print $0
+      exit
+    }
+  ' "$file"
+}
+
+########################################
+# Helper: apply defaults to a file
+########################################
+
+apply_defaults_to_file() {
+  local file="$1"
+  local def_author="$2"
+  local def_dc_creator="$3"
+  local def_license="$4"
+  local def_dc_license="$5"
+  local def_dc_rights="$6"
+
+  local first_line
+  first_line="$(head -n 1 "$file" || true)"
+
+  # No front matter: create minimal one
+  if [[ "$first_line" != ---* ]]; then
+    local tmp
+    tmp="$(mktemp)"
+
+    {
+      echo "---"
+      if [[ -n "$def_author" ]]; then
+        printf 'Author: "%s"\n' "$def_author"
+      fi
+      if [[ -n "$def_dc_creator" ]]; then
+        printf 'DC_Creator: "%s"\n' "$def_dc_creator"
+      fi
+      if [[ -n "$def_license" ]]; then
+        printf 'License: "%s"\n' "$def_license"
+      fi
+      if [[ -n "$def_dc_license" ]]; then
+        printf 'DC_License: "%s"\n' "$def_dc_license"
+      fi
+      if [[ -n "$def_dc_rights" ]]; then
+        printf 'DC_RightsHolder: "%s"\n' "$def_dc_rights"
+      fi
+      echo "---"
+      echo
+      cat "$file"
+    } > "$tmp"
+
+    mv "$tmp" "$file"
+    return
+  fi
+
+  # Has front matter: rewrite first YAML block
+  local tmp
+  tmp="$(mktemp)"
+
+  awk -v authval="$def_author" \
+      -v dccval="$def_dc_creator" \
+      -v licval="$def_license" \
+      -v dclval="$def_dc_license" \
+      -v dcrval="$def_dc_rights" '
+    BEGIN {
+      in_yaml = 0
+      have_author = 0
+      have_dc_creator = 0
+      have_license = 0
+      have_dc_license = 0
+      have_dc_rights = 0
+    }
+
+    NR == 1 && $0 ~ /^---[ \t]*$/ {
+      in_yaml = 1
+      print $0
+      next
+    }
+
+    in_yaml == 1 {
+      # End of YAML front matter
+      if ($0 ~ /^---[ \t]*$/) {
+        # Insert missing default fields (if configured)
+        if (authval != "" && !have_author) {
+          printf "Author: \"%s\"\n", authval
+        }
+        if (dccval != "" && !have_dc_creator) {
+          printf "DC_Creator: \"%s\"\n", dccval
+        }
+        if (licval != "" && !have_license) {
+          printf "License: \"%s\"\n", licval
+        }
+        if (dclval != "" && !have_dc_license) {
+          printf "DC_License: \"%s\"\n", dclval
+        }
+        if (dcrval != "" && !have_dc_rights) {
+          printf "DC_RightsHolder: \"%s\"\n", dcrval
+        }
+        print $0
+        in_yaml = 2
+        next
+      }
+
+      # Detect existing keys, but never overwrite them
+      if ($0 ~ /^Author:[ \t]*/) {
+        have_author = 1
+        print $0
+        next
+      }
+      if ($0 ~ /^DC_Creator:[ \t]*/) {
+        have_dc_creator = 1
+        print $0
+        next
+      }
+      if ($0 ~ /^License:[ \t]*/) {
+        have_license = 1
+        print $0
+        next
+      }
+      if ($0 ~ /^DC_License:[ \t]*/) {
+        have_dc_license = 1
+        print $0
+        next
+      }
+      if ($0 ~ /^DC_RightsHolder:[ \t]*/) {
+        have_dc_rights = 1
+        print $0
+        next
+      }
+
+      # Preserve other YAML lines
+      print $0
+      next
+    }
+
+    {
+      print $0
+    }
+  ' "$file" > "$tmp"
+
+  mv "$tmp" "$file"
+}
+
+########################################
+# Normalize helper for comparison
+########################################
+
+norm() {
+  local s="${1:-}"
+  # strip surrounding quotes
+  s="${s%\"}"
+  s="${s#\"}"
+  # strip leading/trailing whitespace
+  s="${s#"${s%%[![:space:]]*}"}"
+  s="${s%"${s##*[![:space:]]}"}"
+  printf "%s" "$s"
+}
+
+########################################
+# Main walk
+########################################
+
+while IFS= read -r -d '' file; do
+  rel="${file#${ARCHIVE_ROOT}/}"
+
+  existing_author="$(extract_yaml_field "Author" "$file" || true)"
+  existing_dc_creator="$(extract_yaml_field "DC_Creator" "$file" || true)"
+  existing_license="$(extract_yaml_field "License" "$file" || true)"
+  existing_dc_license="$(extract_yaml_field "DC_License" "$file" || true)"
+  existing_dc_rights_holder="$(extract_yaml_field "DC_RightsHolder" "$file" || true)"
+
+  if ! $APPLY; then
+    echo "FILE: ${rel}"
+
+    # Author
+    if [[ -z "${DEFAULT_AUTHOR}" ]]; then
+      echo "  Author:      (no default configured)"
+    else
+      if [[ -z "${existing_author}" ]]; then
+        echo "  Author:      (none) -> \"${DEFAULT_AUTHOR}\""
+      else
+        echo "  Author:      \"${existing_author}\" (unchanged)"
+      fi
+    fi
+
+    # DC_Creator
+    if [[ -z "${DEFAULT_DC_CREATOR}" ]]; then
+      echo "  DC_Creator:  (no default configured)"
+    else
+      if [[ -z "${existing_dc_creator}" ]]; then
+        echo "  DC_Creator:  (none) -> \"${DEFAULT_DC_CREATOR}\""
+      else
+        echo "  DC_Creator:  \"${existing_dc_creator}\" (unchanged)"
+      fi
+    fi
+
+    # License
+    if [[ -z "${DEFAULT_LICENSE}" ]]; then
+      echo "  License:     (no default configured)"
+    else
+      if [[ -z "${existing_license}" ]]; then
+        echo "  License:     (none) -> \"${DEFAULT_LICENSE}\""
+      else
+        echo "  License:     \"${existing_license}\" (unchanged)"
+      fi
+    fi
+
+    # DC_License
+    if [[ -z "${DEFAULT_DC_LICENSE}" ]]; then
+      echo "  DC_License:  (no default configured)"
+    else
+      if [[ -z "${existing_dc_license}" ]]; then
+        echo "  DC_License:  (none) -> \"${DEFAULT_DC_LICENSE}\""
+      else
+        echo "  DC_License:  \"${existing_dc_license}\" (unchanged)"
+      fi
+    fi
+
+    # DC_RightsHolder
+    if [[ -z "${DEFAULT_DC_RIGHTS_HOLDER}" ]]; then
+      echo "  DC_RightsHolder: (no default configured)"
+    else
+      if [[ -z "${existing_dc_rights_holder}" ]]; then
+        echo "  DC_RightsHolder: (none) -> \"${DEFAULT_DC_RIGHTS_HOLDER}\""
+      else
+        echo "  DC_RightsHolder: \"${existing_dc_rights_holder}\" (unchanged)"
+      fi
+    fi
+
+    echo
+  else
+    # Apply mode with per-file confirmation
+
+    # normalized existing values (to detect "missing/empty")
+    existing_author_norm="$(norm "${existing_author}")"
+    existing_dc_creator_norm="$(norm "${existing_dc_creator}")"
+    existing_license_norm="$(norm "${existing_license}")"
+    existing_dc_license_norm="$(norm "${existing_dc_license}")"
+    existing_dc_rights_norm="$(norm "${existing_dc_rights_holder}")"
+
+    needs_change=false
+
+    if [[ -n "${DEFAULT_AUTHOR}" && -z "${existing_author_norm}" ]]; then
+      needs_change=true
+    fi
+    if [[ -n "${DEFAULT_DC_CREATOR}" && -z "${existing_dc_creator_norm}" ]]; then
+      needs_change=true
+    fi
+    if [[ -n "${DEFAULT_LICENSE}" && -z "${existing_license_norm}" ]]; then
+      needs_change=true
+    fi
+    if [[ -n "${DEFAULT_DC_LICENSE}" && -z "${existing_dc_license_norm}" ]]; then
+      needs_change=true
+    fi
+    if [[ -n "${DEFAULT_DC_RIGHTS_HOLDER}" && -z "${existing_dc_rights_norm}" ]]; then
+      needs_change=true
+    fi
+
+    if ! $needs_change; then
+      echo "FILE: ${rel}"
+      echo "  Default metadata already satisfied. Skipping."
+      echo
+      continue
+    fi
+
+    echo "FILE: ${rel}"
+
+    # Author
+    if [[ -z "${DEFAULT_AUTHOR}" ]]; then
+      echo "  Author:      (no default configured)"
+    else
+      if [[ -z "${existing_author_norm}" ]]; then
+        echo "  Author:      (none) -> \"${DEFAULT_AUTHOR}\""
+      else
+        echo "  Author:      \"${existing_author}\" (unchanged)"
+      fi
+    fi
+
+    # DC_Creator
+    if [[ -z "${DEFAULT_DC_CREATOR}" ]]; then
+      echo "  DC_Creator:  (no default configured)"
+    else
+      if [[ -z "${existing_dc_creator_norm}" ]]; then
+        echo "  DC_Creator:  (none) -> \"${DEFAULT_DC_CREATOR}\""
+      else
+        echo "  DC_Creator:  \"${existing_dc_creator}\" (unchanged)"
+      fi
+    fi
+
+    # License
+    if [[ -z "${DEFAULT_LICENSE}" ]]; then
+      echo "  License:     (no default configured)"
+    else
+      if [[ -z "${existing_license_norm}" ]]; then
+        echo "  License:     (none) -> \"${DEFAULT_LICENSE}\""
+      else
+        echo "  License:     \"${existing_license}\" (unchanged)"
+      fi
+    fi
+
+    # DC_License
+    if [[ -z "${DEFAULT_DC_LICENSE}" ]]; then
+      echo "  DC_License:  (no default configured)"
+    else
+      if [[ -z "${existing_dc_license_norm}" ]]; then
+        echo "  DC_License:  (none) -> \"${DEFAULT_DC_LICENSE}\""
+      else
+        echo "  DC_License:  \"${existing_dc_license}\" (unchanged)"
+      fi
+    fi
+
+    # DC_RightsHolder
+    if [[ -z "${DEFAULT_DC_RIGHTS_HOLDER}" ]]; then
+      echo "  DC_RightsHolder: (no default configured)"
+    else
+      if [[ -z "${existing_dc_rights_norm}" ]]; then
+        echo "  DC_RightsHolder: (none) -> \"${DEFAULT_DC_RIGHTS_HOLDER}\""
+      else
+        echo "  DC_RightsHolder: \"${existing_dc_rights_holder}\" (unchanged)"
+      fi
+    fi
+
+    echo
+    printf "Apply default metadata to this file? [y/N]: "
+    read -r ans < /dev/tty
+    case "$ans" in
+      [Yy]*)
+        echo "  Applying..."
+        apply_defaults_to_file "$file" \
+          "${DEFAULT_AUTHOR}" \
+          "${DEFAULT_DC_CREATOR}" \
+          "${DEFAULT_LICENSE}" \
+          "${DEFAULT_DC_LICENSE}" \
+          "${DEFAULT_DC_RIGHTS_HOLDER}"
+        ;;
+      *)
+        echo "  Skipped."
+        ;;
+    esac
+    echo
+  fi
+
+done < <(find "${ARCHIVE_ROOT}" -type f -name '*.md' \
+           ! -path "${ARCHIVE_ROOT}/tools/*" \
+           ! -path "${ARCHIVE_ROOT}/config/*" \
+           -print0)
+
+if $APPLY; then
+  echo "Done. Default metadata applied where confirmed."
+fi

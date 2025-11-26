@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# sat-check-archive v0.1
+# Read-only combined check:
+#   1. sat-refresh-path-metadata (derived values)
+#   2. sat-fill-default-metadata (defaults layer)
+#
+# This tool does not modify any files.
+
+show_help() {
+  cat <<EOF
+Usage: $(basename "$0") [--archive-root PATH]
+
+Run all read-only archive checks:
+  - Derived metadata: sat-refresh-path-metadata
+  - Default metadata: sat-fill-default-metadata
+
+Options:
+  --archive-root PATH   Archive root directory (default: parent of this script)
+  -h, --help            Show this help
+EOF
+}
+
+ARCHIVE_ROOT=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --archive-root)
+      ARCHIVE_ROOT="${2:-}"
+      shift 2
+      ;;
+    -h|--help)
+      show_help
+      exit 0
+      ;;
+    *)
+      echo "Unknown argument: $1" >&2
+      show_help
+      exit 1
+      ;;
+  esac
+done
+
+# Determine archive root if not given
+if [[ -z "${ARCHIVE_ROOT}" ]]; then
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  ARCHIVE_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+fi
+
+echo "sat-check-archive v0.1"
+echo "Archive root: ${ARCHIVE_ROOT}"
+echo
+
+########################################
+# 1. Derived metadata check
+########################################
+
+if [[ ! -x "${ARCHIVE_ROOT}/tools/sat-refresh-path-metadata" ]]; then
+  echo "ERROR: sat-refresh-path-metadata not found or not executable."
+  exit 1
+fi
+
+echo "=== Derived Metadata (sat-refresh-path-metadata) ==="
+"${ARCHIVE_ROOT}/tools/sat-refresh-path-metadata"
+echo
+
+########################################
+# 2. Defaults metadata check
+########################################
+
+if [[ ! -x "${ARCHIVE_ROOT}/tools/sat-fill-default-metadata" ]]; then
+  echo "ERROR: sat-fill-default-metadata not found or not executable."
+  exit 1
+fi
+
+echo "=== Default Metadata (sat-fill-default-metadata) ==="
+"${ARCHIVE_ROOT}/tools/sat-fill-default-metadata"
+echo
+
+echo "=== Archive Check Complete ==="
+echo "No changes were made."

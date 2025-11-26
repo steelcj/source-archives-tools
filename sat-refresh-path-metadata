@@ -1,0 +1,315 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Sovereign Archive Toolkit (sat)
+# sat-refresh-path-metadata v0.3
+#
+# - Default: read-only diff mode (v0.2 behavior)
+# - --apply: update Path/URL/Canonical in YAML front matter
+#            with per-file confirmation prompts.
+#
+# For files without front matter, --apply will create a minimal block.
+
+show_help() {
+  cat <<EOF
+Usage: $(basename "$0") [--archive-root PATH] [--apply]
+
+Compute and (optionally) apply Path/URL/Canonical metadata for all
+Markdown files in an archive.
+
+Options:
+  --archive-root PATH   Archive root directory (default: parent of this script)
+  --apply               Interactively update Path/URL/Canonical in front matter
+  -h, --help            Show this help
+EOF
+}
+
+ARCHIVE_ROOT=""
+APPLY=false
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --archive-root)
+      ARCHIVE_ROOT="${2:-}"
+      shift 2
+      ;;
+    --apply)
+      APPLY=true
+      shift 1
+      ;;
+    -h|--help)
+      show_help
+      exit 0
+      ;;
+    *)
+      echo "Unknown argument: $1" >&2
+      show_help
+      exit 1
+      ;;
+  esac
+done
+
+# If archive root not given, assume this script lives in <archive-root>/tools/
+if [[ -z "${ARCHIVE_ROOT}" ]]; then
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  ARCHIVE_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+fi
+
+if [[ ! -d "${ARCHIVE_ROOT}" ]]; then
+  echo "Error: archive root does not exist: ${ARCHIVE_ROOT}" >&2
+  exit 1
+fi
+
+if $APPLY; then
+  echo "sat-refresh-path-metadata v0.3 (--apply, per-file confirmation)"
+else
+  echo "sat-refresh-path-metadata v0.3 (read-only, diff mode)"
+fi
+echo "Archive root: ${ARCHIVE_ROOT}"
+echo
+
+########################################
+# Helper: apply derived metadata to a file
+########################################
+
+apply_derived_to_file() {
+  local file="$1"
+  local proposed_path="$2"
+  local proposed_url="$3"
+  local proposed_canonical="$4"
+
+  # Check if file has YAML front matter starting with ---
+  local first_line
+  first_line="$(head -n 1 "$file" || true)"
+
+  # No front matter: create a minimal one
+  if [[ "$first_line" != ---* ]]; then
+    local tmp
+    tmp="$(mktemp)"
+
+    {
+      echo "---"
+      printf 'Path: "%s"\n' "$proposed_path"
+      printf 'URL: "%s"\n' "$proposed_url"
+      printf 'Canonical: "%s"\n' "$proposed_canonical"
+      echo "---"
+      echo
+      cat "$file"
+    } > "$tmp"
+
+    mv "$tmp" "$file"
+    return
+  fi
+
+  # Has front matter: rewrite first YAML block
+  local tmp
+  tmp="$(mktemp)"
+
+  awk -v pathval="$proposed_path" \
+      -v urlval="$proposed_url" \
+      -v canonval="$proposed_canonical" '
+    BEGIN {
+      in_yaml = 0
+      found_path = 0
+      found_url = 0
+      found_canon = 0
+    }
+
+    NR == 1 && $0 ~ /^---[ \t]*$/ {
+      in_yaml = 1
+      print $0
+      next
+    }
+
+    in_yaml == 1 {
+      # End of YAML front matter
+      if ($0 ~ /^---[ \t]*$/) {
+        # Insert derived fields if missing
+        if (!found_path)  printf "Path: \"%s\"\n", pathval
+        if (!found_url)   printf "URL: \"%s\"\n", urlval
+        if (!found_canon) printf "Canonical: \"%s\"\n", canonval
+        print $0
+        in_yaml = 2
+        next
+      }
+
+      # Replace existing Path
+      if ($0 ~ /^Path:[ \t]*/) {
+        printf "Path: \"%s\"\n", pathval
+        found_path = 1
+        next
+      }
+
+      # Replace existing URL
+      if ($0 ~ /^URL:[ \t]*/) {
+        printf "URL: \"%s\"\n", urlval
+        found_url = 1
+        next
+      }
+
+      # Replace existing Canonical
+      if ($0 ~ /^Canonical:[ \t]*/) {
+        printf "Canonical: \"%s\"\n", canonval
+        found_canon = 1
+        next
+      }
+
+      # Preserve all other YAML lines
+      print $0
+      next
+    }
+
+    {
+      print $0
+    }
+  ' "$file" > "$tmp"
+
+  mv "$tmp" "$file"
+}
+
+########################################
+# Helper: extract a YAML scalar from front matter (for diff)
+########################################
+
+extract_yaml_field() {
+  local key="$1"
+  local file="$2"
+
+  awk -v k="$key" '
+    BEGIN { in_yaml = 0 }
+    NR == 1 && /^---[ \t]*$/ { in_yaml = 1; next }
+    in_yaml == 1 && /^---[ \t]*$/ { in_yaml = 2; next }
+    in_yaml == 1 && $0 ~ "^" k ":" {
+      sub("^" k ":[ \t]*", "", $0)
+      print $0
+      exit
+    }
+  ' "$file"
+}
+
+########################################
+# Main walk
+########################################
+
+while IFS= read -r -d '' file; do
+  rel="${file#${ARCHIVE_ROOT}/}"
+
+  # Proposed Path: full relative path including extension
+  proposed_path="${rel}"
+
+  # Proposed URL: leading slash + relative path, without .md extension
+  no_ext="${rel%.md}"
+  proposed_url="/${no_ext}"
+
+  # For now, Canonical mirrors URL
+  proposed_canonical="${proposed_url}"
+
+  existing_path="$(extract_yaml_field "Path" "$file" || true)"
+  existing_url="$(extract_yaml_field "URL" "$file" || true)"
+  existing_canonical="$(extract_yaml_field "Canonical" "$file" || true)"
+
+  if ! $APPLY; then
+    # Diff mode
+    echo "FILE: ${rel}"
+
+    if [[ -n "$existing_path" ]]; then
+      echo "  Path:      ${existing_path}  ->  ${proposed_path}"
+    else
+      echo "  Path:      (none)            ->  ${proposed_path}"
+    fi
+
+    if [[ -n "$existing_url" ]]; then
+      echo "  URL:       ${existing_url}   ->  ${proposed_url}"
+    else
+      echo "  URL:       (none)            ->  ${proposed_url}"
+    fi
+
+    if [[ -n "$existing_canonical" ]]; then
+      echo "  Canonical: ${existing_canonical} ->  ${proposed_canonical}"
+    else
+      echo "  Canonical: (none)            ->  ${proposed_canonical}"
+    fi
+
+    echo
+  else
+    # Apply mode with per-file confirmation
+
+    # Normalize existing values: strip surrounding quotes and whitespace
+    norm() {
+      local s="$1"
+      s="${s%\"}"
+      s="${s#\"}"
+      # strip leading/trailing whitespace
+      s="${s#"${s%%[![:space:]]*}"}"
+      s="${s%"${s##*[![:space:]]}"}"
+      printf "%s" "$s"
+    }
+
+    existing_path_norm="$(norm "${existing_path:-}")"
+    existing_url_norm="$(norm "${existing_url:-}")"
+    existing_canonical_norm="$(norm "${existing_canonical:-}")"
+
+    # Determine if anything actually needs to change
+    needs_change=false
+    if [[ "$existing_path_norm" != "$proposed_path" ]]; then
+      needs_change=true
+    fi
+    if [[ "$existing_url_norm" != "$proposed_url" ]]; then
+      needs_change=true
+    fi
+    if [[ "$existing_canonical_norm" != "$proposed_canonical" ]]; then
+      needs_change=true
+    fi
+
+    if ! $needs_change; then
+      # Everything already matches; nothing to do
+      echo "FILE: ${rel}"
+      echo "  Derived metadata already up to date. Skipping."
+      echo
+      continue
+    fi
+
+    # Otherwise, show diff and ask
+    echo "FILE: ${rel}"
+
+    if [[ -n "$existing_path" ]]; then
+      echo "  Path:      ${existing_path}  ->  ${proposed_path}"
+    else
+      echo "  Path:      (none)            ->  ${proposed_path}"
+    fi
+
+    if [[ -n "$existing_url" ]]; then
+      echo "  URL:       ${existing_url}   ->  ${proposed_url}"
+    else
+      echo "  URL:       (none)            ->  ${proposed_url}"
+    fi
+
+    if [[ -n "$existing_canonical" ]]; then
+      echo "  Canonical: ${existing_canonical} ->  ${proposed_canonical}"
+    else
+      echo "  Canonical: (none)            ->  ${proposed_canonical}"
+    fi
+
+    echo
+    printf "Apply changes to this file? [y/N]: "
+    read -r ans < /dev/tty
+    case "$ans" in
+      [Yy]*)
+        echo "  Applying..."
+        apply_derived_to_file "$file" "$proposed_path" "$proposed_url" "$proposed_canonical"
+        ;;
+      *)
+        echo "  Skipped."
+        ;;
+    esac
+    echo
+  fi
+
+done < <(find "${ARCHIVE_ROOT}" -type f -name '*.md' \
+           ! -path "${ARCHIVE_ROOT}/tools/*" \
+           ! -path "${ARCHIVE_ROOT}/config/*" \
+           -print0)
+
+if $APPLY; then
+  echo "Done. Derived metadata applied where confirmed."
+fi

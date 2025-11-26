@@ -1,0 +1,35 @@
+version: "0.1.0"
+
+defaults:
+  authors:
+    - "Christopher Steel"
+  dc_creators:
+    - "Christopher Steel"
+
+  license: "CC BY-SA 4.0"
+  license_id: "cc-by-sa-4.0"
+  dc_license: "https://creativecommons.org/licenses/by-sa/4.0/"
+  dc_rights_holder: "Christopher Steel"
+
+  dc_language_from_locale: true
+
+  tags: []
+  keywords: []
+
+  allow_overwrite_existing: false
+
+authors:
+  - id: "christopher-steel"
+    name: "Christopher Steel"
+    role: "Primary author and content steward"
+
+  - id: "guest-author"
+    name: "Guest Author"
+    role: "Contributor"
+
+licenses:
+  - id: "cc-by-sa-4.0"
+    label: "Creative Commons Attribution-ShareAlike 4.0"
+    url: "https://creativecommons.org/licenses/by-sa/4.0/"
+
+keyword_sets: []

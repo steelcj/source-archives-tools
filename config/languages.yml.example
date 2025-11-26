@@ -1,0 +1,6 @@
+# config/languages.yml
+version: 0.1.0
+languages:
+  - bcp_47_tag: "en-CA"
+    slug: "en-ca"
+    canonical: true

@@ -1,3 +1,14 @@
+# init-archive MVP
+
+- Keeping all existing behavior
+- Adding:
+  - `tools/` skeleton creation
+  - `config/tools_manifest.yml` creation
+  - Stub `sat-…` scripts
+
+Here’s an updated MVP version of your script that does all of that in one place.
+
+```bash
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -244,3 +255,25 @@ EOF
 
 echo "Done. Archive initialized at: $ROOT_DIR"
 echo "A basic tools runtime skeleton and tools_manifest.yml have been created."
+```
+
+You can now:
+
+- Run this in **plan mode**:
+
+```bash
+./init-archive.sh --root-dir ~/archives/wellbeing --canonical en-CA --taxonomy para
+```
+
+- Then **apply**:
+
+```bash
+./init-archive.sh --root-dir ~/archives/wellbeing --canonical en-CA --taxonomy para --apply
+```
+
+Next steps after this MVP:
+
+- Flesh out `sat-refresh-path-metadata` to actually walk the tree and print computed paths.
+- Later, add real write-back behavior.
+
+If you’d like, next I can focus specifically on a v0.1 implementation of `sat-refresh-path-metadata` that only runs in “plan mode” (no file modifications) so you can start testing safely on a tiny pilot archive.

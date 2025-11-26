@@ -1,0 +1,9 @@
+# config/structure.yml
+version: 0.1.0
+root_dir: "/home/initial/archives/wellbeing-mvp"
+taxonomy: "para"
+languages_from: "config/languages.yml"
+
+create:
+  locale_roots: true
+  taxonomy_roots: false  # taxonomy-specific builder logic comes later

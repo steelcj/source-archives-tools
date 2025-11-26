@@ -1,0 +1,15 @@
+# config/tools_manifest.yml
+version: "0.1.0"
+
+tools_origin:
+  repo_url: "https://example.com/source-archive-tools.git"
+  commit: "UNKNOWN"
+
+plugins:
+  taxonomy:
+    - "para"
+  metadata: []
+
+runtime:
+  tools_dir: "tools"
+  tools_version: "0.1.0"

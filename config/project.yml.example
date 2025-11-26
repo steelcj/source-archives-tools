@@ -1,0 +1,4 @@
+# config/project.yml
+version: 0.1.0
+root_dir: "/home/initial/archives/wellbeing-mvp"
+taxonomy: "para"
