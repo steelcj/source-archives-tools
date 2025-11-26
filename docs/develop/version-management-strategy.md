@@ -118,6 +118,7 @@ Set it to the next semantic version, for example:
 
 ```bash
 git add VERSION
+git add .
 git commit -m "Bump source-archive-tools version to 0.2.0"
 ```
 
