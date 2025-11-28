@@ -1,0 +1,19 @@
+fields:
+  DC_Title:
+    required: true
+
+  DC_Creator:
+    required: true
+    default: "Christopher Steel"
+
+  DC_Language:
+    required: true
+    default: "en"
+
+  DC_License:
+    required: true
+    default: "https://creativecommons.org/licenses/by-sa/4.0/"
+
+  DC_Contributor:
+    required: false
+    default: "ChatGPT-5 (OpenAI)"

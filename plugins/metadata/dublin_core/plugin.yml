@@ -1,0 +1,14 @@
+id: "metadata.dublin-core"
+name: "Dublin Core Metadata Plugin"
+version: "0.0.1"
+
+type: "metadata"
+
+entrypoints:
+  apply:
+    run: "plugin.py"
+    callable: "apply_metadata"
+
+paths:
+  standard: "standard"
+  config: "config"
