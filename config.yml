@@ -1,0 +1,6 @@
+schema_version: 1.0.0
+archive_identity:
+  id: unnamed-archive
+  label: SAT Test Archive
+  description: A SAT archive initialized with default testing configuration.
+  archive_root: ../unnamed-archive

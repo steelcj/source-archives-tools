@@ -16,4 +16,4 @@ fields:
 
   DC_Contributor:
     required: false
-    default: "ChatGPT-5 (OpenAI)"
+    default: "ChatGPT-5.1 (OpenAI)"

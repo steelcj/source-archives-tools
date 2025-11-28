@@ -1,0 +1,9 @@
+# tools/plugins/core/schema/etc/defaults.yml
+version: "0.1.0"
+
+plugin:
+  id: "core.schema"
+
+defaults:
+  config_fragments:
+    schema_version: "1.0.0"

@@ -1,0 +1,15 @@
+version: "0.1.0"
+
+plugin:
+  id: "core.archive-identity"
+
+defaults:
+  config_fragments:
+    archive_identity:
+      id: "unnamed-archive"
+      label: "SAT Test Archive"
+      description: "A SAT archive initialized with default testing configuration."
+
+      # Default archive root path.
+      # Template expansion is performed by sat-build-config.
+      archive_root: "../{{ archive_identity.id }}"

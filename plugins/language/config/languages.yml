@@ -1,0 +1,10 @@
+version: "0.1.0"
+
+languages:
+  - bcp_47_tag: "en-CA"
+    slug: "en-ca"
+    canonical: true
+
+  - bcp_47_tag: "fr-QC"
+    slug: "fr-qc"
+    canonical: false

@@ -1,0 +1,6 @@
+schema_version: 1.0.0
+archive_identity:
+  id: universalcake.com
+  label: Universal Cake Source Archive
+  description: Primary SAT archive for the Universal Cake ecosystem.
+  archive_root: ../universalcake.com
