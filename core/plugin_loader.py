@@ -1,11 +1,14 @@
+import sys
 import yaml
 from pathlib import Path
 from importlib import import_module
 
-
+# Ensure the repository root is on sys.path so "plugins" can be imported
 REPO_ROOT = Path(__file__).resolve().parents[1]
-PLUGIN_ROOT = REPO_ROOT / "plugins"
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
+PLUGIN_ROOT = REPO_ROOT / "plugins"
 
 def load_plugin(plugin_id: str):
     """
