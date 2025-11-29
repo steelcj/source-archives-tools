@@ -1,0 +1,17 @@
+schema_version: 1.0.0
+archive_identity:
+  id: unnamed-archive
+  label: SAT Test Archive
+  description: A SAT archive initialized with default testing configuration.
+  archive_root: ../unnamed-archive
+language_roots:
+- id: en-ca
+  slug: en-ca
+  label: English (Canada)
+  bcp_47_tag: en-CA
+  canonical: true
+- id: fr-qc
+  slug: fr-qc
+  label: Français (Québec)
+  bcp_47_tag: fr-CA
+  canonical: false

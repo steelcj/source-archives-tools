@@ -66,6 +66,7 @@ def ensure_dict(value: Any) -> Dict[str, Any]:
 def load_core_plugin_defaults(sat_root: Path, plugin_rel: str, plugin_id: str, required=True):
     """
     Load defaults for a core plugin located at:
+        tools/sat-build-config
         tools/plugins/<plugin_rel>/
     """
     plugin_dir = sat_root / "tools" / "plugins" / plugin_rel
@@ -108,6 +109,39 @@ def load_core_plugin_defaults(sat_root: Path, plugin_rel: str, plugin_id: str, r
         return {}
 
     return fragments
+
+
+def load_all_plugin_config_fragments(plugins_root: Path) -> Dict[str, Any]:
+    """
+    Discover all plugins that ship etc/defaults.yml and merge their
+    defaults.config_fragments into a single config dict.
+
+    plugins_root is the base 'plugins' directory.
+    """
+    config: Dict[str, Any] = {}
+
+    # Collect all defaults.yml paths under plugins/**/etc/defaults.yml
+    defaults_files = sorted(plugins_root.glob("**/etc/defaults.yml"))
+
+    # Optional: core plugins first (simple path-based rule)
+    core_files = [p for p in defaults_files if "/core/" in str(p)]
+    other_files = [p for p in defaults_files if "/core/" not in str(p)]
+    ordered_files = core_files + other_files
+
+    for defaults_file in ordered_files:
+        data = load_yaml_file(defaults_file) or {}
+
+        fragments = (
+            data.get("defaults", {})
+                .get("config_fragments", {})
+            or {}
+        )
+
+        if fragments:
+            config = deep_merge(config, fragments)
+
+    return config
+
 
 # ------------------------------------------------------------
 # Template expansion
@@ -170,6 +204,11 @@ def build_config(args) -> Dict[str, Any]:
     )
     config = deep_merge(config, archive_id)
 
+    # Load defaults from all plugins (including core + non-core)
+    plugins_root = sat_root / "tools" / "plugins"
+    plugin_fragments = load_all_plugin_config_fragments(plugins_root)
+    config = deep_merge(config, plugin_fragments)
+
     # Optional: archive-level config
     if args.config:
         cfg_path = Path(args.config)
@@ -227,7 +266,13 @@ def main():
     args = parse_args()
     config = build_config(args)
 
-    yaml_text = yaml.safe_dump(config, sort_keys=False, allow_unicode=True)
+    yaml_text = yaml.safe_dump(
+        config,
+        sort_keys=False,
+        allow_unicode=True,
+        default_flow_style=False,
+        indent=2,
+    )
 
     if args.output:
         out = Path(args.output)

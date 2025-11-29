@@ -12,10 +12,7 @@ a minimal archive root on disk:
     config/
       archive.yml
 
-MVP: now also creates one directory per language_root (if present):
-  <archive_root>/<language_slug>/
-
-No PARA structure or plugin installation yet.
+MVP: no language roots, no PARA structure, no plugin installation.
 """
 
 import argparse
@@ -110,19 +107,19 @@ def resolve_archive_root(config: Dict[str, Any], output_root: Optional[str]) -> 
     root = Path(root_str).expanduser().resolve()
     return root
 
+
 def write_archive_config(root: Path, config: Dict[str, Any], dry_run: bool = False) -> None:
-    """Write config/archive.yml with the full SAT configuration, normalizing archive_root."""
+    """Write config/archive.yml with minimal fields."""
     ai = ensure_dict(config.get("archive_identity"))
 
-    # Make a shallow copy so we don't mutate the original config dict.
-    out_data: Dict[str, Any] = dict(config)
-
-    # Ensure archive_identity exists and has the resolved root path
-    out_data["archive_identity"] = {
-        "id": ai.get("id"),
-        "label": ai.get("label"),
-        "description": ai.get("description"),
-        "archive_root": str(root),
+    out_data: Dict[str, Any] = {
+        "schema_version": config.get("schema_version"),
+        "archive_identity": {
+            "id": ai.get("id"),
+            "label": ai.get("label"),
+            "description": ai.get("description"),
+            "archive_root": str(root),
+        },
     }
 
     config_dir = root / "config"
@@ -142,45 +139,6 @@ def write_archive_config(root: Path, config: Dict[str, Any], dry_run: bool = Fal
         sys.exit(1)
 
     print(f"[sat-init-archive] Wrote {archive_yml}", file=sys.stderr)
-
-def create_language_roots(root: Path, config: Dict[str, Any], dry_run: bool = False) -> None:
-    """
-    Create one directory per language_root under the archive root, if language_roots is defined.
-
-    For each entry in config["language_roots"] with a 'slug', this will create:
-        <root>/<slug>/
-    """
-    language_roots = config.get("language_roots") or []
-
-    if not isinstance(language_roots, list):
-        print(
-            "[sat-init-archive] WARN: language_roots is not a list; skipping language root creation.",
-            file=sys.stderr,
-        )
-        return
-
-    for lang in language_roots:
-        if not isinstance(lang, dict):
-            continue
-        slug = lang.get("slug")
-        if not slug:
-            continue
-
-        lang_dir = root / slug
-
-        if dry_run:
-            if lang_dir.exists():
-                print(f"[sat-init-archive] DRY RUN: language root already exists: {lang_dir}", file=sys.stderr)
-            else:
-                print(f"[sat-init-archive] DRY RUN: Would create language root: {lang_dir}", file=sys.stderr)
-            continue
-
-        try:
-            lang_dir.mkdir(parents=True, exist_ok=True)
-            print(f"[sat-init-archive] Ensured language root: {lang_dir}", file=sys.stderr)
-        except Exception as exc:
-            print(f"[sat-init-archive] ERROR: Failed to create language root {lang_dir}: {exc}", file=sys.stderr)
-            sys.exit(1)
 
 
 def init_archive(config_path: Path, output_root: Optional[str], force: bool, dry_run: bool) -> None:
@@ -221,9 +179,6 @@ def init_archive(config_path: Path, output_root: Optional[str], force: bool, dry
 
     # Write minimal config/archive.yml
     write_archive_config(root, config, dry_run=dry_run)
-
-    # Create language root directories (if any)
-    create_language_roots(root, config, dry_run=dry_run)
 
     if not dry_run:
         print(f"[sat-init-archive] Archive initialized at: {root}", file=sys.stderr)
