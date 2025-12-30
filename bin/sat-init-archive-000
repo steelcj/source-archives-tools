@@ -1,0 +1,171 @@
+#!/usr/bin/env python3
+"""
+sat-init-archive: Initialize a SAT Content Archive (cross-platform MVP).
+
+Responsibilities:
+- Locate the Tool Archive root (parent of tools/).
+- Read tool_archive_id and tool_archive_version from meta/archive.manifest.yml.
+- Create a new Content Archive directory.
+- Write:
+  - config/archive.yml
+  - meta/archive.manifest.yml
+
+Notes:
+- Uses pathlib for path handling (Windows-safe).
+- Uses newline="\n" when writing, so files are consistent across platforms.
+"""
+
+from __future__ import annotations
+
+import argparse
+from pathlib import Path
+from typing import Optional
+
+# ---------------------------------------------------------------------------
+# Path derivation (assumes this file lives in <project-root>/tools/bin)
+# ---------------------------------------------------------------------------
+
+BIN_DIR = Path(__file__).resolve().parent
+TOOLS_DIR = BIN_DIR.parent
+PROJECT_ROOT = TOOLS_DIR.parent
+
+CONFIG_DIR = PROJECT_ROOT / "config"
+META_DIR = PROJECT_ROOT / "meta"
+PLUGINS_DIR = PROJECT_ROOT / "plugins"  # reserved for future use
+
+# Guard: ensure we are in a valid SAT Tool Archive
+if not (TOOLS_DIR / "bin").exists():
+    raise SystemExit(
+        f"Error: invalid SAT tools layout detected at {TOOLS_DIR}"
+    )
+
+
+def parse_tool_manifest(manifest_path: Path) -> tuple[str, str]:
+    """
+    Minimal parser for meta/archive.manifest.yml to extract:
+    - tool_archive_id
+    - tool_archive_version
+    """
+    tool_archive_id: Optional[str] = None
+    tool_archive_version: Optional[str] = None
+
+    text = manifest_path.read_text(encoding="utf-8")
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("tool_archive_id:"):
+            tool_archive_id = stripped.split(":", 1)[1].strip().strip('"')
+        elif stripped.startswith("tool_archive_version:"):
+            tool_archive_version = stripped.split(":", 1)[1].strip().strip('"')
+
+    if not tool_archive_id or not tool_archive_version:
+        raise SystemExit(
+            f"Error: {manifest_path} is missing tool_archive_id or tool_archive_version."
+        )
+
+    return tool_archive_id, tool_archive_version
+
+
+def write_text(path: Path, content: str) -> None:
+    """
+    Write UTF-8 text with Unix newlines, in a parent-safe way.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8", newline="\n")
+
+
+def build_config_yaml(
+    archive_root: Path, archive_id: str, label: str, description: str
+) -> str:
+    """
+    Build the content for config/archive.yml.
+    """
+    root_posix = archive_root.as_posix()
+    return (
+        'schema_version: "1.0.0"\n'
+        "archive_identity:\n"
+        f'  id: "{archive_id}"\n'
+        f'  label: "{label}"\n'
+        f'  description: "{description}"\n'
+        f'  archive_root: "{root_posix}"\n'
+    )
+
+
+def build_manifest_yaml(
+    tool_archive_id: str, tool_archive_version: str
+) -> str:
+    """
+    Build the content for meta/archive.manifest.yml for a Content Archive.
+    """
+    return (
+        'archive_type: "content-archive"\n'
+        f'tool_archive_id: "{tool_archive_id}"\n'
+        f'tool_archive_version: "{tool_archive_version}"\n'
+    )
+
+
+def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Initialize a SAT Content Archive (MVP)."
+    )
+    parser.add_argument(
+        "--archive-root",
+        required=True,
+        help="Path to the new Content Archive root directory.",
+    )
+    parser.add_argument(
+        "--id", required=True, help="Identifier for the new Content Archive."
+    )
+    parser.add_argument(
+        "--label",
+        required=True,
+        help="Human-readable label for the Content Archive.",
+    )
+    parser.add_argument(
+        "--description",
+        required=True,
+        help="Description of the Content Archive.",
+    )
+    return parser.parse_args(argv)
+
+
+def main(argv: Optional[list[str]] = None) -> int:
+    args = parse_args(argv)
+
+    # Content Archive root (passed by user, resolved to absolute path)
+    archive_root = Path(args.archive_root).resolve()
+
+    # Tool Archive manifest is always at <project-root>/meta/archive.manifest.yml
+    tool_manifest_path = META_DIR / "archive.manifest.yml"
+    if not tool_manifest_path.exists():
+        raise SystemExit(
+            f"Error: Tool Archive manifest not found at {tool_manifest_path}. "
+            "Is sat-init-archive being run from a valid Tool Archive?"
+        )
+
+    tool_archive_id, tool_archive_version = parse_tool_manifest(tool_manifest_path)
+
+    archive_root.mkdir(parents=True, exist_ok=True)
+
+    config_content = build_config_yaml(
+        archive_root=archive_root,
+        archive_id=args.id,
+        label=args.label,
+        description=args.description,
+    )
+    write_text(archive_root / "config" / "archive.yml", config_content)
+
+    ca_manifest_content = build_manifest_yaml(
+        tool_archive_id=tool_archive_id,
+        tool_archive_version=tool_archive_version,
+    )
+    write_text(archive_root / "meta" / "archive.manifest.yml", ca_manifest_content)
+
+    print(f"Initialized Content Archive at: {archive_root}")
+    print(f"  tool_archive_id: {tool_archive_id}")
+    print(f"  tool_archive_version: {tool_archive_version}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+

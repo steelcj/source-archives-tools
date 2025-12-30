@@ -1,0 +1,6 @@
+schema_version: "1.0.0"
+archive_identity:
+  id: "example-content-archive"
+  label: "Example Content Archive"
+  description: "An example SAT content archive created for testing."
+  archive_root: "/home/initial/projects/sat/dev/sat/archives/example-content-archive"

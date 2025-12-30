@@ -1,0 +1,226 @@
+#!/usr/bin/env python3
+"""
+sat-init-archive: Initialize a SAT Content Archive (cross-platform MVP).
+
+Responsibilities:
+- Locate the SAT Tool Archive root.
+- Read SAT version from sat/VERSION (single source of truth).
+- Validate SAT identity from meta/sat.manifest.yml.
+- Read the default content archive manifest template from satellites/.
+- Create a new Content Archive directory.
+- Write:
+  - config/archive.yml
+  - meta/archive.manifest.yml
+
+Notes:
+- Uses pathlib for path handling (Windows-safe).
+- Uses newline="\n" when writing, so files are consistent across platforms.
+"""
+
+from __future__ import annotations
+
+import argparse
+from pathlib import Path
+from typing import Optional
+
+# ---------------------------------------------------------------------------
+# Path derivation
+# Assumes this file lives in <project-root>/bin
+# ---------------------------------------------------------------------------
+
+BIN_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = BIN_DIR.parent
+
+# ---------------------------------------------------------------------------
+# Guards
+# ---------------------------------------------------------------------------
+
+if not (PROJECT_ROOT / "VERSION").exists():
+    raise SystemExit(
+        f"Error: SAT VERSION file not found at {PROJECT_ROOT / 'VERSION'}"
+    )
+
+if not (PROJECT_ROOT / "satellites").exists():
+    raise SystemExit(
+        f"Error: satellites/ directory not found at {PROJECT_ROOT / 'satellites'}"
+    )
+
+# ---------------------------------------------------------------------------
+# SAT runtime helpers
+# ---------------------------------------------------------------------------
+
+def read_sat_identity(project_root: Path) -> tuple[str, str]:
+    manifest_path = project_root / "meta" / "sat.manifest.yml"
+    if not manifest_path.exists():
+        raise SystemExit(
+            f"Error: SAT identity manifest not found at {manifest_path}"
+        )
+
+    sat_id: Optional[str] = None
+    sat_version: Optional[str] = None
+
+    for line in manifest_path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if stripped.startswith("sat_id:"):
+            sat_id = stripped.split(":", 1)[1].strip().strip('"')
+        elif stripped.startswith("sat_version:"):
+            sat_version = stripped.split(":", 1)[1].strip().strip('"')
+
+    if not sat_id:
+        raise SystemExit("Error: sat_id missing from sat.manifest.yml")
+
+    if not sat_version:
+        raise SystemExit("Error: sat_version missing from sat.manifest.yml")
+
+    return sat_id, sat_version
+
+
+def read_sat_version(project_root: Path) -> str:
+    version_path = project_root / "VERSION"
+    return version_path.read_text(encoding="utf-8").strip()
+
+
+def read_default_archive_manifest(project_root: Path) -> str:
+    template_path = project_root / "satellites" / "archive.default.manifest.yml"
+    if not template_path.exists():
+        raise SystemExit(
+            "Error: archive.default.manifest.yml not found.\n"
+            f"Expected at: {template_path}"
+        )
+    return template_path.read_text(encoding="utf-8")
+
+
+def write_text(path: Path, content: str) -> None:
+    """
+    Write UTF-8 text with Unix newlines, creating parent directories if needed.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8", newline="\n")
+
+# ---------------------------------------------------------------------------
+# Builders
+# ---------------------------------------------------------------------------
+
+def build_config_yaml(
+    archive_root: Path, archive_id: str, label: str, description: str
+) -> str:
+    root_posix = archive_root.as_posix()
+    return (
+        'schema_version: "1.0.0"\n'
+        "archive_identity:\n"
+        f'  id: "{archive_id}"\n'
+        f'  label: "{label}"\n'
+        f'  description: "{description}"\n'
+        f'  archive_root: "{root_posix}"\n'
+    )
+
+
+def build_content_archive_manifest(
+    template: str,
+    content_archive_id: str,
+    sat_version: str,
+) -> str:
+    lines: list[str] = []
+
+    for line in template.rstrip().splitlines():
+        stripped = line.strip()
+        if stripped.startswith("sat_version:"):
+            lines.append(f'sat_version: "{sat_version}"')
+        else:
+            lines.append(line)
+
+    lines.append(f'content_archive_id: "{content_archive_id}"')
+
+    return "\n".join(lines) + "\n"
+
+# ---------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------
+
+def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Initialize a SAT Content Archive (MVP)."
+    )
+    parser.add_argument(
+        "--archive-root",
+        required=True,
+        help="Path to the new Content Archive root directory.",
+    )
+    parser.add_argument(
+        "--id",
+        required=True,
+        help="Identifier for the new Content Archive.",
+    )
+    parser.add_argument(
+        "--label",
+        required=True,
+        help="Human-readable label for the Content Archive.",
+    )
+    parser.add_argument(
+        "--description",
+        required=True,
+        help="Description of the Content Archive.",
+    )
+    return parser.parse_args(argv)
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+def main(argv: Optional[list[str]] = None) -> int:
+    args = parse_args(argv)
+
+    # Resolve content archive root
+    archive_root = Path(args.archive_root).resolve()
+
+    # Read SAT runtime state
+    sat_version = read_sat_version(PROJECT_ROOT)
+    default_manifest = read_default_archive_manifest(PROJECT_ROOT)
+
+    # Phase 2: validate SAT identity
+    sat_id, manifest_sat_version = read_sat_identity(PROJECT_ROOT)
+
+    if sat_id != "sat":
+        raise SystemExit(
+            f"Error: Invalid sat_id '{sat_id}' (expected 'sat')"
+        )
+
+    if manifest_sat_version != sat_version:
+        raise SystemExit(
+            "Error: sat.manifest.yml version does not match VERSION\n"
+            f"  sat.manifest.yml: {manifest_sat_version}\n"
+            f"  VERSION: {sat_version}"
+        )
+
+    # Create archive root
+    archive_root.mkdir(parents=True, exist_ok=True)
+
+    # Write config/archive.yml
+    config_content = build_config_yaml(
+        archive_root=archive_root,
+        archive_id=args.id,
+        label=args.label,
+        description=args.description,
+    )
+    write_text(archive_root / "config" / "archive.yml", config_content)
+
+    # Write meta/archive.manifest.yml
+    manifest_content = build_content_archive_manifest(
+        template=default_manifest,
+        content_archive_id=args.id,
+        sat_version=sat_version,
+    )
+    write_text(
+        archive_root / "meta" / "archive.manifest.yml",
+        manifest_content,
+    )
+
+    print(f"Initialized Content Archive at: {archive_root}")
+    print(f"  sat_version: {sat_version}")
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+
