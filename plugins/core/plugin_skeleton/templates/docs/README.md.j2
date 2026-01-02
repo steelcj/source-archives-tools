@@ -1,0 +1,83 @@
+# README.md
+
+## Overview
+
+This document provides an overview of the **{{ plugin_name }}** plugin for the SAT system. It explains the plugin’s purpose, category, entrypoints, internal structure, and integration points within the SAT tooling ecosystem.
+
+The plugin follows SAT’s core rules for determinism, non-generative behavior, accessibility, and metadata alignment. All SAT plugins must adhere to the standardized directory layout and manifest structure defined by the SAT Plugin Skeleton Tool.
+
+### Plugin Name
+`{{ plugin_name }}`
+
+### Category
+`{{ plugin_category }}`  
+Valid categories include: `core`, `metadata`, `taxonomy`, `style`, `structure`, `language`, and `other`.
+
+### Description
+{{ plugin_description }}
+
+### Entrypoints
+
+The plugin defines the following entrypoints in `plugin.yml`:
+
+```
+{{ plugin_entrypoints }}
+```
+
+Each entrypoint corresponds to an operation that SAT tooling may invoke.  
+Entrypoints must be deterministic, must not generate content, and must not depend on external network access.
+
+### Directory Layout
+
+A SAT-compliant plugin created from the skeleton tool uses the following structure:
+
+```
+plugin_name/
+  plugin.yml
+  docs/
+    README.md
+  defaults/
+  examples/
+  tests/
+  python/              (optional)
+    plugin_name/
+      __init__.py
+      validators.py
+  validators/          (optional)
+  bin/                 (optional)
+```
+
+The plugin must preserve this structure even as additional capabilities are added.
+
+### Manifest Requirements
+
+Every SAT plugin must include a `plugin.yml` manifest containing:
+
+- `id`
+- `name`
+- `version`
+- `description`
+- `category`
+- `paths`
+- `entrypoints`
+
+The Plugin Skeleton Tool validates the manifest for completeness and structural correctness.
+
+### Determinism and Safety Requirements
+
+All SAT plugins must follow the SAT core safety constraints:
+
+- deterministic execution  
+- no network access  
+- no randomization  
+- no content generation or rewriting  
+- no modification of human-authored meaning  
+- clear, auditable behavior  
+
+Plugins may manipulate metadata, file structure, validation flow, or formatting rules, but may not alter the meaning of SAT documents.
+
+## License
+
+This document, *README.md*, for the **{{ plugin_name }}** plugin, by **Christopher Steel**, with AI assistance from **ChatGPT-4 (OpenAI)**, is licensed under the Creative Commons Attribution-ShareAlike 4.0 License.
+
+![CC License](https://mirrors.creativecommons.org/presskit/buttons/88x31/svg/by-sa.svg)

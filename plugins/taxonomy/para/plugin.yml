@@ -1,0 +1,12 @@
+id: "taxonomy.para"
+name: "PARA Taxonomy Plugin"
+version: "0.1.0"
+
+paths:
+  docs: "./docs"
+  examples: "./examples"
+  templates: "./templates"
+  metadata: "./meta"
+
+defaults:
+  etc: "./etc"

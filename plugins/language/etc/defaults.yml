@@ -1,0 +1,19 @@
+version: "0.1.0"
+
+plugin:
+  id: "core.language"
+
+defaults:
+  config_fragments:
+    language_roots:
+      - id: "en-ca"
+        slug: "en-ca"
+        label: "English (Canada)"
+        bcp_47_tag: "en-CA"
+        canonical: true
+
+      - id: "fr-qc"
+        slug: "fr-qc"
+        label: "Français (Québec)"
+        bcp_47_tag: "fr-CA"
+        canonical: false

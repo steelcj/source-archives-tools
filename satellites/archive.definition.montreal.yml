@@ -1,0 +1,20 @@
+schema_version: "1.0"
+
+archive:
+  id: "montreal-boroughs"
+  label: "City of Montréal — Boroughs / Arrondissements"
+  root: "archives/montreal-boroughs/docs"
+
+structure:
+  languages:
+    - id: "en-ca"
+      label: "English Canadian"
+      leaf:
+        id: "boroughs"
+        label: "Boroughs"
+
+    - id: "fr-qc"
+      label: "Français (Québec)"
+      leaf:
+        id: "arrondissements"
+        label: "Arrondissements"

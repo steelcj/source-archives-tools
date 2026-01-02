@@ -1,0 +1,3 @@
+#base_url: "https://universalcake.com"
+# or for internal use:
+# base_url: "https://internal.euria.infomaniak.ch/docs"

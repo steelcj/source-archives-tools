@@ -1,0 +1,12 @@
+id: "language"
+name: "Language Detection Plugin"
+version: "0.1.0"
+
+entrypoints:
+  apply:
+    run: "plugin.py"
+    callable: "apply_language"
+
+paths:
+  config: "config"
+  standard: "standard"

@@ -1,0 +1,23 @@
+schema_version: "1.0"
+
+archive:
+  id: "example"
+  label: "Example Archive"
+  root: "./archives/example-archive/docs"
+
+structure:
+  languages:
+    - id: "en-ca"
+      label: "English Canadian"
+    - id: "fr-qc"
+      label: "Français"
+
+  domains:
+    - id: "projects"
+      label: "Projects"
+    - id: "areas"
+      label: "Areas"
+    - id: "resources"
+      label: "Resources"
+    - id: "archives"
+      label: "Archives"

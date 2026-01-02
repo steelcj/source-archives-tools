@@ -44,6 +44,18 @@ chmod +x ./bin/sat-init-archive.py
   --description "An example SAT content archive created for testing."
 ```
 
+example2
+
+```bash
+./bin/sat-init-archive.py \
+  --archive-root ./archives/test \
+  --id "example-content-archive" \
+  --label "Example Content Archive" \
+  --description "An example SAT content archive created for testing."
+```
+
+
+
 Expected oputput
 
 ```bash
@@ -53,6 +65,26 @@ Expected oputput
   --description "An example SAT content archive created for testing."
 Initialized Content Archive at: /home/initial/projects/sat/dev/sat/archives/example-content-archive
   sat_version: 1.0.0
+```
+
+Results: 
+
+
+
+```bash
+tree /home/initial/projects/sat/dev/sat/archives/test
+```
+
+output example:
+
+```bash
+/home/initial/projects/sat/dev/sat/archives/test
+├── config
+│   └── archive.yml
+└── meta
+    └── archive.manifest.yml
+
+3 directories, 2 files
 ```
 
 

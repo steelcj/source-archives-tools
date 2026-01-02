@@ -1,0 +1,9 @@
+id: "core.archive-identity"
+name: "SAT Core Archive Identity Plugin"
+version: "0.1.0"
+
+description: "Provides default archive_identity configuration for SAT archives, including a testing-friendly archive_root."
+
+paths:
+  defaults: "./etc/defaults.yml"
+  docs: "./docs"

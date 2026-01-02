@@ -1,0 +1,121 @@
+#!/usr/bin/env python3
+import os
+import re
+import yaml
+from datetime import datetime
+from jinja2 import Template
+
+def get_context(filepath):
+    """Extract context from file path"""
+    filepath = os.path.normpath(filepath)
+    parts = filepath.split(os.sep)
+
+    try:
+        docs_idx = parts.index('docs')
+    except ValueError:
+        raise ValueError("File must be under a 'docs' directory")
+
+    locale = parts[docs_idx + 1]
+    domain = parts[docs_idx + 2]
+    category = parts[docs_idx + 3] if len(parts) > docs_idx + 3 else None
+    filename = os.path.basename(filepath)
+    basename = os.path.splitext(filename)[0]
+    relative_path = filepath.replace("\\", "/").replace("./", "").replace("archives/euria-generated/", "")
+    print("DEBUG: filename =", filename)
+    print("DEBUG: basename =", basename)
+
+    # Load config — with fallback
+    config_path = 'satellites/euria/config.yml'
+    config = {}
+    if os.path.exists(config_path):
+        with open(config_path, 'r', encoding='utf-8') as f:
+            try:
+                config = yaml.safe_load(f) or {}
+            except yaml.YAMLError as e:
+                print(f"Config YAML error in {config_path}: {e}")
+    else:
+        print(f"Config file not found: {config_path}. Using defaults.")
+
+    base_url = config.get('base_url', 'https://example-from-inject-frontmatter-script.com')
+
+    return {
+        'basename': basename,
+        'domain': domain,
+        'category': category,
+        'locale': locale,
+        'relative_path': relative_path,
+        'base_url': base_url,
+        'now': datetime.now().strftime("%Y-%m-%d")
+    }
+
+
+def render_frontmatter(context, template_path):
+    """Render front matter using template and context"""
+    print("DEBUG: model_data keys =", list(model_data.keys()))
+    print("DEBUG: model_data['title'] =", model_data.get('title'))
+    print("DEBUG: model_data['basename'] =", model_data.get('basename'))
+    with open(template_path, 'r', encoding='utf-8') as f:
+        template_str = f.read()
+
+    template = Template(template_str)
+    return template.render(**model_data)
+
+def main(filepath):
+    # Get context
+    context = get_context(filepath)
+
+    # Load model
+    model_path = 'satellites/euria/models/document-context.yml'
+    with open(model_path, 'r', encoding='utf-8') as f:
+        model_str = f.read()
+
+    # Render model -> context
+    model_template = Template(model_str)
+    rendered_model = model_template.render(**context)
+
+    # Parse rendered model as YAML
+    model_data = yaml.safe_load(rendered_model)
+    print("DEBUG: model_data keys =", list(model_data.keys()))
+    print("DEBUG: model_data['basename'] =", model_data.get('basename'))
+
+    # Load template
+    template_path = 'satellites/euria/templates/sat-document-template.yml'
+    with open(template_path, 'r', encoding='utf-8') as f:
+        template_str = f.read()
+
+    # Ensure title is present
+    if 'title' not in model_data:
+        model_data['title'] = model_data.get('basename', '').replace('-', ' ').replace('_', ' ').title()
+
+    # Render final front matter
+    final_template = Template(template_str)
+    print("DEBUG: model_data keys =", list(model_data.keys()))
+    print("DEBUG: model_data['title'] =", model_data.get('title'))
+    print("DEBUG: model_data['basename'] =", model_data.get('basename'))
+    frontmatter = final_template.render(**model_data)
+
+    if not model_data.get('title'):
+        raise ValueError(f"Title is empty. basename={context.get('basename')}")
+
+    # Read existing file
+    with open(filepath, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    # Check if front matter exists
+    if content.startswith('---\n') and '\n---\n' in content:
+        print(f"Front matter already exists in {filepath}. Skipping.")
+        return
+
+    # Write new content
+    new_content = frontmatter + '\n' + content
+    with open(filepath, 'w', encoding='utf-8') as f:
+        f.write(new_content)
+
+    print(f"SAT front matter generated for {filepath}")
+
+if __name__ == "__main__":
+    import sys
+    if len(sys.argv) != 2:
+        print("Usage: python3 bin/sat-generate-frontmatter.py <filepath>")
+        sys.exit(1)
+    main(sys.argv[1])

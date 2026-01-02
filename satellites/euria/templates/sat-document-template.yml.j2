@@ -1,0 +1,16 @@
+---
+basename: "{{ basename }}"
+Title: "{{ title }}"
+Description: "{{ description | default('A SAT-compliant document.') }}"
+Author: "Christopher Steel"
+Date: "{{ date }}"
+License: "CC BY-SA 4.0"
+Path: "{{ path }}"
+{% if canonical %}Canonical: "{{ canonical }}"{% endif %}
+Sitemap: "true"
+DC_Subject: "{{ dc_subject | default('Documentation, Process Design') }}"
+DC_Description: "{{ dc_description | default('SAT-compliant document outlining structure, workflow, or specification.') }}"
+Domain: "{{ domain }}"
+Category: "{{ category }}"
+Locale: "{{ locale }}"
+---

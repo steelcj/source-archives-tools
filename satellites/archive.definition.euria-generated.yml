@@ -1,0 +1,27 @@
+schema_version: "1.0"
+
+archive:
+  id: "euria-generated"
+  label: "Euria Generated Documents Archive"
+  root: "./archives/euria-generated/docs"
+
+structure:
+  languages:
+    - id: "en-ch"
+      label: "English (Switzerland)"
+    - id: "fr-ch"
+      label: "Français (Suisse)"
+    - id: "de-ch"
+      label: "Deutsch (Schweiz)"
+    - id: "it-ch"
+      label: "Italiano (Svizzera)"
+
+  domains:
+    - id: "projects"
+      label: "Projects"
+    - id: "areas"
+      label: "Areas"
+    - id: "resources"
+      label: "Resources"
+    - id: "archives"
+      label: "Archives"

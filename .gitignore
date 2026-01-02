@@ -1,0 +1,98 @@
+# --------------------------------------------------
+# Allow for Testing and Demo Archives but not others
+# --------------------------------------------------
+# Ignore all archives by default
+archives/*
+
+# Allow the testing archive itself
+!archives/testing/
+
+# Allow all contents inside testing archive
+!archives/testing/**
+
+# --------------------------------------------------
+# Operating system & editor noise
+# --------------------------------------------------
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*.bak
+*.tmp
+*.orig
+*~
+.idea/
+.vscode/
+*.code-workspace
+
+# --------------------------------------------------
+# Python
+# --------------------------------------------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# --------------------------------------------------
+# Build & distribution artifacts
+# --------------------------------------------------
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# --------------------------------------------------
+# SAT tool runtime artifacts (never source)
+# --------------------------------------------------
+.cache/
+.logs/
+*.log
+
+# Explicit SAT runtime state (if introduced later)
+sat-state/
+sat-runtime/
+
+# --------------------------------------------------
+# Archive-derived output (never authoritative)
+# --------------------------------------------------
+# Generated site output (MkDocs, etc.)
+site/
+public/
+public_html/
+
+# Exported content
+exports/
+out/
+
+# --------------------------------------------------
+# Archive-local transient files
+# --------------------------------------------------
+# Temporary working files inside archives
+**/.sat-tmp/
+**/.sat-cache/
+
+# --------------------------------------------------
+# Secrets (must never be committed)
+# --------------------------------------------------
+.env
+.env.*
+*.key
+*.pem
+*.crt
+secrets/
+credentials/
+
+# --------------------------------------------------
+# Optional: OS-level trash
+# --------------------------------------------------
+.Trash-*

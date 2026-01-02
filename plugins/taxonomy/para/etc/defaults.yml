@@ -1,0 +1,32 @@
+version: "0.1.0"
+
+plugin:
+  id: "taxonomy.para"
+
+defaults:
+  config_fragments:
+    para_roots:
+      - id: "projects"
+        slug: "projects"
+        label: "Projects"
+      - id: "areas"
+        slug: "areas"
+        label: "Areas"
+      - id: "resources"
+        slug: "resources"
+        label: "Resources"
+      - id: "archives"
+        slug: "archives"
+        label: "Archives"
+
+    para_labels:
+      en-ca:
+        projects: "Projects"
+        areas: "Areas"
+        resources: "Resources"
+        archives: "Archives"
+      fr-qc:
+        projects: "Projets"
+        areas: "Domaines"
+        resources: "Ressources"
+        archives: "Archives"

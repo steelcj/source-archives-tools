@@ -1,7 +1,7 @@
 ## Design Rationale
 
 SAT enforces a strict internal layout because:
-  
+
 - Schemas and defaults are shared across tools
 - Plugins must be discoverable in predictable locations
 - Archives must never be created with incomplete metadata contracts

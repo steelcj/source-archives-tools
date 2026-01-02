@@ -1,0 +1,7 @@
+# plugins/core/schema/plugin.yml
+id: "core.schema"
+name: "SAT Core Schema Plugin"
+version: "0.1.0"
+
+paths:
+  defaults: "./etc/defaults.yml"
