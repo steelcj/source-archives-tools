@@ -1,0 +1,148 @@
+---
+Title: "SAT Tools: Core, Archive, Content, and Publication Utilities"
+Description: "A conceptual flowchart illustrating the four functional classes of tools in the SAT ecosystem: tools for SAT itself, for archives, for content, and for publication."
+Author: "Christopher Steel"
+Date: "2026-01-02"
+License: "CC BY-SA 4.0"
+Path: "resources/design/sat-tools-architecture"
+Canonical: "https://universalcake.com/resources/design/sat-tools-architecture"
+Sitemap: "true"
+DC_Subject: "Source Archive Tools architecture"
+DC_Description: "Diagram showing how SAT tools are intentionally separated by responsibility to avoid coupling meaning, structure, and output."
+---
+
+## SAT Tools: Core, Archive, Content, and Publication Utilities
+
+<a name="sat-tools-architecture-chart"></a>
+
+```mermaid
+%%{ init: {
+  "theme": "base",
+  "themeVariables": {
+    "fontFamily": "Inter, system-ui, sans-serif",
+    "fontSize": "14px",
+    "primaryColor": "#f5f5f5",
+    "primaryTextColor": "#000000",
+    "primaryBorderColor": "#444444",
+    "lineColor": "#444444",
+    "secondaryColor": "#ffffff",
+    "tertiaryColor": "#eeeeee"
+  }
+} }%%
+flowchart TD
+
+A["SAT Core Tools
+Tools for SAT Itself
+
+• sat-init
+• sat-self-check
+• sat-version
+• Schema & invariants
+• SAT evolution only"]
+
+
+B["Archive Tools
+Tools for Archives
+
+• sat-init-archive
+• sat-tree
+• sat-build-config
+• Identity & structure
+• Archive-scoped"]
+
+
+C["Content Tools
+Tools for Content
+
+• Metadata helpers
+• Validation tools
+• Import & normalization
+• Human-facing
+• Meaning-preserving"]
+
+
+D["Publication Utilities
+Tools for Output
+
+• Generators
+• Renderers
+• Export pipelines
+• Site builders
+• Disposable artifacts"]
+
+
+A --> B
+B --> C
+C --> D
+
+click A "#sat-core-tools"
+click B "#archive-tools"
+click C "#content-tools"
+click D "#publication-utilities"
+```
+
+### SAT Core Tools
+
+<a name="sat-core-tools"></a>
+
+These tools exist **for SAT itself**.
+
+- Manage SAT versions, schemas, and invariants
+- Never touch archive content
+- Ensure SAT remains coherent as a system
+- Used by SAT developers, not archive authors
+
+They define what SAT *is*, not what archives contain.
+
+[Return to chart](#sat-tools-architecture-chart)
+
+### Archive Tools
+
+<a name="archive-tools"></a>
+
+Archive tools operate on **archive boundaries**.
+
+- Create and validate archive identity
+- Enforce structural expectations
+- Resolve configuration explicitly
+- Never infer meaning from content
+
+They are the primary interface between SAT and archives.
+
+[Return to chart](#sat-tools-architecture-chart)
+
+### Content Tools
+
+<a name="content-tools"></a>
+
+Content tools assist **humans working with meaning**.
+
+- Help generate compliant metadata
+- Validate content without interpreting it
+- Support imports and transformations
+- Respect linguistic and structural divergence
+
+They serve people first, SAT second.
+
+[Return to chart](#sat-tools-architecture-chart)
+
+### Publication Utilities
+
+<a name="publication-utilities"></a>
+
+Publication utilities produce **outputs**, not truth.
+
+- Consume prepared archives
+- Apply renderer-specific logic
+- Are optional and replaceable
+- Never influence archive validity
+
+Outputs are temporary. Archives are not.
+
+[Return to chart](#sat-tools-architecture-chart)
+
+## License
+
+This document, *SAT Tools: Core, Archive, Content, and Publication Utilities*, by **Christopher Steel**, with AI assistance from **Euria (Infomaniak)**, is licensed under the [Creative Commons Attribution-ShareAlike 4.0 License](https://creativecommons.org/licenses/by-sa/4.0/).
+
+![CC License](https://mirrors.creativecommons.org/presskit/buttons/88x31/svg/by-sa.svg)

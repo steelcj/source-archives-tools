@@ -1,0 +1,61 @@
+## Daily Log — 2026-01-01
+
+### Context
+
+Work continued on SAT immediately following the conceptual milestone of “1.0.0”. During this session, it became clear that although a stable contract had emerged, **version governance had not yet been formally enforced**, and experimental development was still occurring on paths that would normally be reserved for stable releases.
+
+This realization triggered a pause and a shift from feature work to **process correction and repository safety**.
+
+---
+
+### What Happened
+
+- Reviewed SAT versioning semantics and clarified:
+  - the meaning of `1.0.0` as a user-facing contract
+  - the difference between stable guarantees and experimental work
+- Drafted and finalized:
+  - `VERSIONING.md`
+  - `DEVELOPMENT_VERSIONING.md`
+- Identified that experimental and unfinished features had been mixed into what conceptually felt like “1.0.0” work
+- Audited Git tags and confirmed:
+  - no `v1.0.0` tag exists yet
+  - all existing tags are pre-1.0 (`v0.x.x`) or non-semver markers
+- Created a **rescue branch** to preserve all in-progress work:
+  - `rescue/experimental-2026-01`
+- Committed all current experimental changes to the rescue branch
+- Pushed the rescue branch to `origin` and set upstream tracking
+
+At no point was `main` rewritten or force-pushed.
+
+---
+
+### Outcome
+
+- All experimental work is **safely preserved**, locally and remotely
+- `main` remains clean and suitable for defining a true `v1.0.0` baseline
+- No published version promises were violated
+- The repository is now in a state where:
+  - stabilization can happen deliberately
+  - version tagging can be done with confidence
+  - experimental work can be reintroduced intentionally
+
+---
+
+### Key Insight
+
+SAT crossed a threshold from “active development” into **contract-governed software**.  
+The issue was not a technical mistake, but a missing layer of explicit governance — which has now been addressed.
+
+This was a **timely correction**, made before any irreversible public release.
+
+---
+
+### Next Steps (Deferred)
+
+- Define the exact scope of the `v1.0.0` contract
+- Clean or gate experimental features
+- Create or realign a proper `dev` branch
+- Tag `v1.0.0` once the baseline is explicit
+- Draft a short roadmap mapping experiments to future versions
+
+No action required immediately.
